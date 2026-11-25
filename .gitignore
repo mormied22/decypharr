@@ -29,3 +29,5 @@ node_modules/
 *.prof
 .codex/
 .claude/
+/.owned-build/
+/owned-baseline-evidence/

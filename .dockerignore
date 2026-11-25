@@ -31,3 +31,6 @@ data/**
 
 .stignore
 .stfolder/**
+.owned-build/
+owned-baseline-evidence/
+.github/
