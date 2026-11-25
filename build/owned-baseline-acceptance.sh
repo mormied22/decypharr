@@ -17,6 +17,13 @@ BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
 printf '%s\n' "$REVISION" > "$EVIDENCE/build-revision.txt"
 printf '%s\n' "$CODE_COMMIT" > "$EVIDENCE/code-revision.txt"
 printf '%s\n' "$BUILD_DATE" > "$EVIDENCE/build-date.txt"
+# A local invocation must never silently target a saved remote/lab context.
+test -z "${DOCKER_HOST:-}" && test -z "${DOCKER_CONTEXT:-}"
+DOCKER_ENDPOINT=$(docker context inspect --format '{{.Endpoints.docker.Host}}')
+case "$DOCKER_ENDPOINT" in unix:///*) ;; *) echo 'Local Unix Docker endpoint required.' >&2; exit 1 ;; esac
+printf '%s\n' "$DOCKER_ENDPOINT" > "$EVIDENCE/docker-endpoint.txt"
+uname -a > "$EVIDENCE/host-kernel.txt"
+printf 'ImageOS=%s\nImageVersion=%s\n' "${ImageOS:-local}" "${ImageVersion:-unknown}" > "$EVIDENCE/runner-image.txt"
 docker version > "$EVIDENCE/docker-version.txt"
 docker buildx version > "$EVIDENCE/buildx-version.txt"
 export BUILDX_METADATA_PROVENANCE=disabled
@@ -32,6 +39,7 @@ docker buildx build --platform linux/amd64 --load --provenance=false \
   --metadata-file "$EVIDENCE/build-metadata.json" \
   --iidfile "$EVIDENCE/build-image-id.txt" --tag "$LOCAL_IMAGE" --progress plain . \
   > "$EVIDENCE/image-build.log" 2>&1
+docker buildx inspect > "$EVIDENCE/buildx-builder.txt"
 
 docker image inspect --format '{{json .Config.Labels}}' "$LOCAL_IMAGE" > "$EVIDENCE/labels.json"
 docker image inspect --format '{{.Id}}' "$LOCAL_IMAGE" > "$EVIDENCE/image-id.txt"
